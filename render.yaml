@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: tcg-sync
+    runtime: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: WC_URL
+        sync: false
+      - key: WC_KEY
+        sync: false
+      - key: WC_SECRET
+        sync: false
+      - key: CATEGORY_SINGLES_ID
+        value: "49"

@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TCG Colombia Sync</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      min-height: 100vh;
+      color: #fff;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    
+    header {
+      text-align: center;
+      padding: 30px 0;
+    }
+    
+    header h1 {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+      background: linear-gradient(90deg, #ffd700, #ff6b6b);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    header p {
+      color: #8892b0;
+      font-size: 1.1rem;
+    }
+    
+    .card {
+      background: rgba(255,255,255,0.05);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 20px;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .sync-btn {
+      width: 100%;
+      padding: 20px 40px;
+      font-size: 1.3rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      background: linear-gradient(90deg, #ffd700, #ff9500);
+      color: #1a1a2e;
+    }
+    
+    .sync-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(255,215,0,0.3);
+    }
+    
+    .sync-btn:disabled {
+      background: #4a4a6a;
+      color: #8892b0;
+      cursor: not-allowed;
+    }
+    
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    
+    .stat {
+      background: rgba(255,255,255,0.03);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+    }
+    
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #ffd700;
+    }
+    
+    .stat-label {
+      font-size: 0.85rem;
+      color: #8892b0;
+      margin-top: 4px;
+    }
+    
+    .progress-section {
+      margin-bottom: 20px;
+    }
+    
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    
+    .phase {
+      font-weight: 600;
+      color: #ffd700;
+      text-transform: capitalize;
+    }
+    
+    .progress-bar {
+      height: 24px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #ffd700, #ff6b6b);
+      border-radius: 12px;
+      transition: width 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #1a1a2e;
+    }
+    
+    .current-set {
+      margin-top: 10px;
+      font-size: 0.9rem;
+      color: #8892b0;
+    }
+    
+    .logs-section h3 {
+      margin-bottom: 12px;
+      color: #ccd6f6;
+    }
+    
+    .logs {
+      background: #0a0a14;
+      border-radius: 12px;
+      padding: 16px;
+      height: 300px;
+      overflow-y: auto;
+      font-family: 'Monaco', 'Menlo', monospace;
+      font-size: 0.85rem;
+      line-height: 1.6;
+    }
+    
+    .log-entry {
+      padding: 4px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    
+    .log-entry:last-child {
+      border-bottom: none;
+    }
+    
+    .log-time {
+      color: #4a4a6a;
+      margin-right: 8px;
+    }
+    
+    .log-msg.info { color: #8892b0; }
+    .log-msg.success { color: #64ffda; }
+    .log-msg.warn { color: #ffd700; }
+    .log-msg.error { color: #ff6b6b; }
+    
+    .status-badge {
+      display: inline-block;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-left: 10px;
+    }
+    
+    .status-idle { background: #4a4a6a; color: #ccd6f6; }
+    .status-running { background: #ffd700; color: #1a1a2e; animation: pulse 2s infinite; }
+    .status-complete { background: #64ffda; color: #1a1a2e; }
+    .status-error { background: #ff6b6b; color: #fff; }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+    
+    .footer {
+      text-align: center;
+      padding: 20px;
+      color: #4a4a6a;
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🎴 TCG Colombia Sync</h1>
+      <p>Pokemon card price sync from tcgcsv.com to WooCommerce</p>
+    </header>
+
+    <div class="card">
+      <button id="syncBtn" class="sync-btn" onclick="startSync()">
+        ⚡ Start Sync
+      </button>
+    </div>
+
+    <div class="card">
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-value" id="setsCount">0/0</div>
+          <div class="stat-label">Sets Processed</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" id="createdCount">0</div>
+          <div class="stat-label">Created</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" id="updatedCount">0</div>
+          <div class="stat-label">Updated</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" id="statusBadge">
+            <span class="status-badge status-idle">Idle</span>
+          </div>
+          <div class="stat-label">Status</div>
+        </div>
+      </div>
+
+      <div class="progress-section">
+        <div class="progress-header">
+          <span>Progress</span>
+          <span class="phase" id="phase">Waiting...</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+        </div>
+        <div class="current-set" id="currentSet"></div>
+      </div>
+    </div>
+
+    <div class="card logs-section">
+      <h3>📜 Live Logs</h3>
+      <div class="logs" id="logs"></div>
+    </div>
+
+    <div class="footer">
+      Built with ⚡ by Rotom
+    </div>
+  </div>
+
+  <script>
+    let eventSource = null;
+
+    function connectSSE() {
+      eventSource = new EventSource('/api/events');
+      
+      eventSource.onmessage = (event) => {
+        const msg = JSON.parse(event.data);
+        
+        if (msg.type === 'init' || msg.type === 'progress') {
+          updateUI(msg.data);
+        } else if (msg.type === 'log') {
+          addLog(msg.data);
+        }
+      };
+
+      eventSource.onerror = () => {
+        setTimeout(connectSSE, 3000);
+      };
+    }
+
+    function updateUI(state) {
+      // Update stats
+      document.getElementById('setsCount').textContent = `${state.progress}/${state.total}`;
+      document.getElementById('createdCount').textContent = state.created.toLocaleString();
+      document.getElementById('updatedCount').textContent = state.updated.toLocaleString();
+      
+      // Update progress bar
+      const pct = state.total > 0 ? Math.round((state.progress / state.total) * 100) : 0;
+      const fill = document.getElementById('progressFill');
+      fill.style.width = `${pct}%`;
+      fill.textContent = pct > 10 ? `${pct}%` : '';
+      
+      // Update phase
+      document.getElementById('phase').textContent = formatPhase(state.phase);
+      
+      // Update current set
+      document.getElementById('currentSet').textContent = state.currentSet 
+        ? `📦 ${state.currentSet}` 
+        : '';
+      
+      // Update button
+      const btn = document.getElementById('syncBtn');
+      btn.disabled = state.running;
+      btn.textContent = state.running ? '⏳ Syncing...' : '⚡ Start Sync';
+      
+      // Update status badge
+      const badge = document.getElementById('statusBadge');
+      let badgeClass = 'status-idle';
+      let badgeText = 'Idle';
+      
+      if (state.running) {
+        badgeClass = 'status-running';
+        badgeText = 'Running';
+      } else if (state.phase === 'complete') {
+        badgeClass = 'status-complete';
+        badgeText = 'Complete';
+      } else if (state.phase === 'error') {
+        badgeClass = 'status-error';
+        badgeText = 'Error';
+      }
+      
+      badge.innerHTML = `<span class="status-badge ${badgeClass}">${badgeText}</span>`;
+    }
+
+    function formatPhase(phase) {
+      const phases = {
+        idle: 'Waiting...',
+        starting: 'Starting...',
+        downloading: 'Downloading CSVs...',
+        connecting: 'Connecting to WooCommerce...',
+        fetching: 'Fetching existing products...',
+        syncing: 'Syncing products...',
+        complete: 'Complete! ✅',
+        error: 'Error ❌'
+      };
+      return phases[phase] || phase;
+    }
+
+    function addLog(entry) {
+      const logs = document.getElementById('logs');
+      const time = new Date(entry.timestamp).toLocaleTimeString();
+      
+      const div = document.createElement('div');
+      div.className = 'log-entry';
+      div.innerHTML = `<span class="log-time">${time}</span><span class="log-msg ${entry.type}">${entry.msg}</span>`;
+      
+      logs.appendChild(div);
+      logs.scrollTop = logs.scrollHeight;
+    }
+
+    async function startSync() {
+      try {
+        const res = await fetch('/api/sync', { method: 'POST' });
+        if (!res.ok) {
+          const data = await res.json();
+          alert(data.error || 'Failed to start sync');
+        }
+      } catch (e) {
+        alert('Failed to connect: ' + e.message);
+      }
+    }
+
+    // Initialize
+    connectSSE();
+  </script>
+</body>
+</html>

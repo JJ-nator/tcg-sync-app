@@ -1,312 +1,398 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TCG Colombia Sync</title>
+  <title>TCG Sync | Pokemon Card Price Sync</title>
+  <link rel="icon" href="https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/portrait/0479/Normal.png" type="image/png">
   <style>
+    :root {
+      --primary: #ff6b35;
+      --primary-dark: #e55a2b;
+      --secondary: #4ecdc4;
+      --bg-dark: #1a1a2e;
+      --bg-card: #16213e;
+      --bg-lighter: #1f2b47;
+      --text: #eee;
+      --text-muted: #888;
+      --success: #4ade80;
+      --warning: #fbbf24;
+      --error: #f87171;
+      --border: #2a3a5a;
+    }
+    
     * { box-sizing: border-box; margin: 0; padding: 0; }
     
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg-dark);
+      color: var(--text);
       min-height: 100vh;
-      color: #fff;
-      padding: 20px;
+      line-height: 1.5;
     }
     
     .container {
-      max-width: 900px;
+      max-width: 1000px;
       margin: 0 auto;
+      padding: 20px;
     }
     
     header {
-      text-align: center;
-      padding: 30px 0;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 20px 0;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 24px;
+    }
+    
+    .logo {
+      width: 64px;
+      height: 64px;
+      image-rendering: pixelated;
     }
     
     header h1 {
-      font-size: 2.5rem;
-      margin-bottom: 10px;
-      background: linear-gradient(90deg, #ffd700, #ff6b6b);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+      font-size: 1.8em;
+      font-weight: 600;
     }
     
-    header p {
-      color: #8892b0;
-      font-size: 1.1rem;
+    header h1 span {
+      color: var(--primary);
     }
     
-    .card {
-      background: rgba(255,255,255,0.05);
-      border-radius: 16px;
-      padding: 24px;
-      margin-bottom: 20px;
-      border: 1px solid rgba(255,255,255,0.1);
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 0.9em;
     }
     
-    .sync-buttons {
+    .stats-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      display: flex;
+      align-items: center;
       gap: 16px;
     }
     
-    .sync-btn {
-      width: 100%;
-      padding: 20px 24px;
-      font-size: 1.1rem;
-      font-weight: 600;
-      border: none;
+    .stat-icon {
+      width: 48px;
+      height: 48px;
+      image-rendering: pixelated;
+    }
+    
+    .stat-info h3 {
+      color: var(--text-muted);
+      font-size: 0.85em;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .stat-info .value {
+      font-size: 1.8em;
+      font-weight: 700;
+      color: var(--text);
+    }
+    
+    .stat-info .value.success { color: var(--success); }
+    .stat-info .value.warning { color: var(--warning); }
+    .stat-info .value.error { color: var(--error); }
+    
+    .controls {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
       border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+    
+    .controls h2 {
+      font-size: 1.2em;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .button-group {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    
+    button {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 1em;
+      font-weight: 600;
       cursor: pointer;
-      transition: all 0.3s ease;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
     
-    .sync-btn.full {
-      background: linear-gradient(90deg, #ffd700, #ff9500);
-      color: #1a1a2e;
+    button:hover:not(:disabled) {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
     }
     
-    .sync-btn.prices {
-      background: linear-gradient(90deg, #64ffda, #4ecdc4);
-      color: #1a1a2e;
-    }
-    
-    .sync-btn:hover:not(:disabled) {
-      transform: translateY(-2px);
-    }
-    
-    .sync-btn.full:hover:not(:disabled) {
-      box-shadow: 0 10px 30px rgba(255,215,0,0.3);
-    }
-    
-    .sync-btn.prices:hover:not(:disabled) {
-      box-shadow: 0 10px 30px rgba(100,255,218,0.3);
-    }
-    
-    .sync-btn:disabled {
-      background: #4a4a6a !important;
-      color: #8892b0;
+    button:disabled {
+      opacity: 0.5;
       cursor: not-allowed;
     }
     
-    .sync-btn small {
-      display: block;
-      font-size: 0.75rem;
-      font-weight: 400;
-      margin-top: 4px;
-      opacity: 0.8;
+    button.secondary {
+      background: var(--bg-lighter);
+      border: 1px solid var(--border);
     }
     
-    @media (max-width: 500px) {
-      .sync-buttons {
-        grid-template-columns: 1fr;
-      }
+    button.secondary:hover:not(:disabled) {
+      background: var(--border);
     }
     
-    .stats {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-      gap: 16px;
-      margin-bottom: 20px;
-    }
-    
-    .stat {
-      background: rgba(255,255,255,0.03);
-      border-radius: 12px;
-      padding: 20px;
-      text-align: center;
-    }
-    
-    .stat-value {
-      font-size: 2rem;
-      font-weight: 700;
-      color: #ffd700;
-    }
-    
-    .stat-label {
-      font-size: 0.85rem;
-      color: #8892b0;
-      margin-top: 4px;
+    button.danger {
+      background: var(--error);
     }
     
     .progress-section {
-      margin-bottom: 20px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
     }
     
     .progress-header {
       display: flex;
       justify-content: space-between;
-      margin-bottom: 10px;
+      align-items: center;
+      margin-bottom: 16px;
     }
     
-    .phase {
-      font-weight: 600;
-      color: #ffd700;
-      text-transform: capitalize;
-    }
-    
-    .progress-bar {
-      height: 24px;
-      background: rgba(255,255,255,0.1);
-      border-radius: 12px;
-      overflow: hidden;
-    }
-    
-    .progress-fill {
-      height: 100%;
-      background: linear-gradient(90deg, #ffd700, #ff6b6b);
-      border-radius: 12px;
-      transition: width 0.3s ease;
+    .progress-header h2 {
+      font-size: 1.2em;
       display: flex;
       align-items: center;
-      justify-content: center;
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: #1a1a2e;
+      gap: 10px;
     }
-    
-    .current-set {
-      margin-top: 10px;
-      font-size: 0.9rem;
-      color: #8892b0;
-    }
-    
-    .logs-section h3 {
-      margin-bottom: 12px;
-      color: #ccd6f6;
-    }
-    
-    .logs {
-      background: #0a0a14;
-      border-radius: 12px;
-      padding: 16px;
-      height: 300px;
-      overflow-y: auto;
-      font-family: 'Monaco', 'Menlo', monospace;
-      font-size: 0.85rem;
-      line-height: 1.6;
-    }
-    
-    .log-entry {
-      padding: 4px 0;
-      border-bottom: 1px solid rgba(255,255,255,0.05);
-    }
-    
-    .log-entry:last-child {
-      border-bottom: none;
-    }
-    
-    .log-time {
-      color: #4a4a6a;
-      margin-right: 8px;
-    }
-    
-    .log-msg.info { color: #8892b0; }
-    .log-msg.success { color: #64ffda; }
-    .log-msg.warn { color: #ffd700; }
-    .log-msg.error { color: #ff6b6b; }
     
     .status-badge {
-      display: inline-block;
-      padding: 6px 16px;
+      padding: 4px 12px;
       border-radius: 20px;
-      font-size: 0.85rem;
+      font-size: 0.85em;
       font-weight: 600;
-      margin-left: 10px;
+      text-transform: uppercase;
     }
     
-    .status-idle { background: #4a4a6a; color: #ccd6f6; }
-    .status-running { background: #ffd700; color: #1a1a2e; animation: pulse 2s infinite; }
-    .status-complete { background: #64ffda; color: #1a1a2e; }
-    .status-error { background: #ff6b6b; color: #fff; }
+    .status-badge.idle { background: var(--bg-lighter); color: var(--text-muted); }
+    .status-badge.running { background: var(--primary); animation: pulse 2s infinite; }
+    .status-badge.complete { background: var(--success); color: #000; }
+    .status-badge.error { background: var(--error); }
     
     @keyframes pulse {
       0%, 100% { opacity: 1; }
       50% { opacity: 0.7; }
     }
     
-    .footer {
+    .progress-bar {
+      height: 24px;
+      background: var(--bg-lighter);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+    
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+      border-radius: 12px;
+      transition: width 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 0.85em;
+      min-width: 40px;
+    }
+    
+    .progress-details {
+      display: flex;
+      justify-content: space-between;
+      color: var(--text-muted);
+      font-size: 0.9em;
+    }
+    
+    .current-set {
+      color: var(--secondary);
+      font-weight: 500;
+    }
+    
+    .logs-section {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+    }
+    
+    .logs-section h2 {
+      font-size: 1.2em;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .logs-container {
+      background: #0d1117;
+      border-radius: 8px;
+      padding: 16px;
+      height: 300px;
+      overflow-y: auto;
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 0.85em;
+    }
+    
+    .log-entry {
+      padding: 4px 0;
+      border-bottom: 1px solid #1a2332;
+    }
+    
+    .log-entry:last-child { border-bottom: none; }
+    
+    .log-time {
+      color: var(--text-muted);
+      margin-right: 8px;
+    }
+    
+    .log-entry.info .log-msg { color: var(--text); }
+    .log-entry.success .log-msg { color: var(--success); }
+    .log-entry.warn .log-msg { color: var(--warning); }
+    .log-entry.error .log-msg { color: var(--error); }
+    
+    footer {
       text-align: center;
-      padding: 20px;
-      color: #4a4a6a;
-      font-size: 0.85rem;
+      padding: 24px;
+      color: var(--text-muted);
+      font-size: 0.85em;
+    }
+    
+    footer a {
+      color: var(--secondary);
+      text-decoration: none;
+    }
+    
+    /* Responsive */
+    @media (max-width: 600px) {
+      .stats-grid { grid-template-columns: 1fr; }
+      header { flex-direction: column; text-align: center; }
+      .button-group { flex-direction: column; }
+      button { width: 100%; justify-content: center; }
     }
   </style>
 </head>
 <body>
   <div class="container">
     <header>
-      <h1>🎴 TCG Colombia Sync</h1>
-      <p>Pokemon card price sync from tcgcsv.com to WooCommerce</p>
+      <img src="https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/portrait/0479/Normal.png" alt="Rotom" class="logo">
+      <div>
+        <h1>TCG <span>Sync</span></h1>
+        <p class="subtitle">Pokemon Card Price Sync for TCG Colombia</p>
+      </div>
     </header>
-
-    <div class="card">
-      <div class="sync-buttons">
-        <button id="priceBtn" class="sync-btn prices" onclick="startSync('prices')">
-          💰 Price Sync
-          <small>Update prices only (faster)</small>
+    
+    <div class="stats-grid">
+      <div class="stat-card">
+        <img src="https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/portrait/0025/Normal.png" alt="Pikachu" class="stat-icon">
+        <div class="stat-info">
+          <h3>Products</h3>
+          <div class="value" id="productCount">--</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <img src="https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/portrait/0006/Normal.png" alt="Charizard" class="stat-icon">
+        <div class="stat-info">
+          <h3>Created</h3>
+          <div class="value success" id="createdCount">0</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <img src="https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/portrait/0009/Normal.png" alt="Blastoise" class="stat-icon">
+        <div class="stat-info">
+          <h3>Updated</h3>
+          <div class="value warning" id="updatedCount">0</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <img src="https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/portrait/0003/Normal.png" alt="Venusaur" class="stat-icon">
+        <div class="stat-info">
+          <h3>Skipped</h3>
+          <div class="value" id="skippedCount">0</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="controls">
+      <h2>⚡ Sync Controls</h2>
+      <div class="button-group">
+        <button id="btnFullSync" onclick="startSync('full')">
+          🔄 Full Sync
         </button>
-        <button id="fullBtn" class="sync-btn full" onclick="startSync('full')">
-          ⚡ Full Sync
-          <small>Create new + update prices</small>
+        <button id="btnPriceSync" onclick="startSync('prices')" class="secondary">
+          💰 Price-Only Sync
+        </button>
+        <button id="btnStop" onclick="stopSync()" class="danger" disabled>
+          ⏹️ Stop
         </button>
       </div>
     </div>
-
-    <div class="card">
-      <div class="stats">
-        <div class="stat">
-          <div class="stat-value" id="setsCount">0/0</div>
-          <div class="stat-label">Sets Processed</div>
-        </div>
-        <div class="stat">
-          <div class="stat-value" id="createdCount">0</div>
-          <div class="stat-label">Created</div>
-        </div>
-        <div class="stat">
-          <div class="stat-value" id="updatedCount">0</div>
-          <div class="stat-label">Updated</div>
-        </div>
-        <div class="stat">
-          <div class="stat-value" id="statusBadge">
-            <span class="status-badge status-idle">Idle</span>
-          </div>
-          <div class="stat-label">Status</div>
-        </div>
+    
+    <div class="progress-section">
+      <div class="progress-header">
+        <h2>📊 Progress</h2>
+        <span class="status-badge idle" id="statusBadge">Idle</span>
       </div>
-
-      <div class="progress-section">
-        <div class="progress-header">
-          <span>Progress</span>
-          <span class="phase" id="phase">Waiting...</span>
-        </div>
-        <div class="progress-bar">
-          <div class="progress-fill" id="progressFill" style="width: 0%"></div>
-        </div>
-        <div class="current-set" id="currentSet"></div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressBar" style="width: 0%">0%</div>
+      </div>
+      <div class="progress-details">
+        <span id="progressText">Ready to sync</span>
+        <span class="current-set" id="currentSet"></span>
       </div>
     </div>
-
-    <div class="card logs-section">
-      <h3>📜 Live Logs</h3>
-      <div class="logs" id="logs"></div>
+    
+    <div class="logs-section">
+      <h2>📝 Logs</h2>
+      <div class="logs-container" id="logsContainer"></div>
     </div>
-
-    <div class="footer">
-      Built with ⚡ by Rotom
-    </div>
+    
+    <footer>
+      <p>Powered by <a href="https://tcgcsv.com" target="_blank">tcgcsv.com</a> • 
+         Sprites by <a href="https://sprites.pmdcollab.org/" target="_blank">PMDCollab</a></p>
+    </footer>
   </div>
 
   <script>
-    let eventSource = null;
-
-    function connectSSE() {
+    let eventSource;
+    
+    // Connect to SSE
+    function connect() {
       eventSource = new EventSource('/api/events');
       
-      eventSource.onmessage = (event) => {
-        const msg = JSON.parse(event.data);
+      eventSource.onmessage = (e) => {
+        const msg = JSON.parse(e.data);
         
         if (msg.type === 'init' || msg.type === 'progress') {
           updateUI(msg.data);
@@ -314,115 +400,99 @@
           addLog(msg.data);
         }
       };
-
+      
       eventSource.onerror = () => {
-        setTimeout(connectSSE, 3000);
+        setTimeout(connect, 3000);
       };
     }
-
+    
     function updateUI(state) {
-      // Update stats
-      document.getElementById('setsCount').textContent = `${state.progress}/${state.total}`;
+      // Update counts
       document.getElementById('createdCount').textContent = state.created.toLocaleString();
       document.getElementById('updatedCount').textContent = state.updated.toLocaleString();
+      document.getElementById('skippedCount').textContent = state.skipped.toLocaleString();
       
-      // Update progress bar
+      // Update progress
       const pct = state.total > 0 ? Math.round((state.progress / state.total) * 100) : 0;
-      const fill = document.getElementById('progressFill');
-      fill.style.width = `${pct}%`;
-      fill.textContent = pct > 10 ? `${pct}%` : '';
+      const bar = document.getElementById('progressBar');
+      bar.style.width = pct + '%';
+      bar.textContent = pct + '%';
       
-      // Update phase
-      document.getElementById('phase').textContent = formatPhase(state.phase);
+      // Update progress text
+      document.getElementById('progressText').textContent = 
+        state.total > 0 ? `${state.progress} / ${state.total} sets` : 'Ready to sync';
       
       // Update current set
-      document.getElementById('currentSet').textContent = state.currentSet 
-        ? `📦 ${state.currentSet}` 
-        : '';
-      
-      // Update buttons
-      const priceBtn = document.getElementById('priceBtn');
-      const fullBtn = document.getElementById('fullBtn');
-      priceBtn.disabled = state.running;
-      fullBtn.disabled = state.running;
-      
-      if (state.running) {
-        const mode = state.mode || 'full';
-        if (mode === 'prices') {
-          priceBtn.innerHTML = '⏳ Syncing...<small>Updating prices</small>';
-          fullBtn.innerHTML = '⚡ Full Sync<small>Create new + update prices</small>';
-        } else {
-          priceBtn.innerHTML = '💰 Price Sync<small>Update prices only (faster)</small>';
-          fullBtn.innerHTML = '⏳ Syncing...<small>Creating + updating</small>';
-        }
-      } else {
-        priceBtn.innerHTML = '💰 Price Sync<small>Update prices only (faster)</small>';
-        fullBtn.innerHTML = '⚡ Full Sync<small>Create new + update prices</small>';
-      }
+      document.getElementById('currentSet').textContent = state.currentSet || '';
       
       // Update status badge
       const badge = document.getElementById('statusBadge');
-      let badgeClass = 'status-idle';
-      let badgeText = 'Idle';
+      badge.className = 'status-badge ' + (state.phase || 'idle');
+      badge.textContent = state.phase || 'Idle';
       
-      if (state.running) {
-        badgeClass = 'status-running';
-        badgeText = 'Running';
-      } else if (state.phase === 'complete') {
-        badgeClass = 'status-complete';
-        badgeText = 'Complete';
-      } else if (state.phase === 'error') {
-        badgeClass = 'status-error';
-        badgeText = 'Error';
-      }
-      
-      badge.innerHTML = `<span class="status-badge ${badgeClass}">${badgeText}</span>`;
+      // Update buttons
+      const running = state.running;
+      document.getElementById('btnFullSync').disabled = running;
+      document.getElementById('btnPriceSync').disabled = running;
+      document.getElementById('btnStop').disabled = !running;
     }
-
-    function formatPhase(phase) {
-      const phases = {
-        idle: 'Waiting...',
-        starting: 'Starting...',
-        downloading: 'Downloading CSVs...',
-        connecting: 'Connecting to WooCommerce...',
-        fetching: 'Fetching existing products...',
-        syncing: 'Syncing products...',
-        complete: 'Complete! ✅',
-        error: 'Error ❌'
-      };
-      return phases[phase] || phase;
-    }
-
+    
     function addLog(entry) {
-      const logs = document.getElementById('logs');
-      const time = new Date(entry.timestamp).toLocaleTimeString();
-      
+      const container = document.getElementById('logsContainer');
       const div = document.createElement('div');
-      div.className = 'log-entry';
-      div.innerHTML = `<span class="log-time">${time}</span><span class="log-msg ${entry.type}">${entry.msg}</span>`;
+      div.className = 'log-entry ' + entry.type;
       
-      logs.appendChild(div);
-      logs.scrollTop = logs.scrollHeight;
+      const time = new Date(entry.timestamp).toLocaleTimeString();
+      div.innerHTML = `<span class="log-time">${time}</span><span class="log-msg">${entry.msg}</span>`;
+      
+      container.appendChild(div);
+      container.scrollTop = container.scrollHeight;
+      
+      // Keep last 200 logs
+      while (container.children.length > 200) {
+        container.removeChild(container.firstChild);
+      }
     }
-
-    async function startSync(mode = 'full') {
+    
+    async function startSync(mode) {
       try {
-        const res = await fetch('/api/sync', { 
+        const res = await fetch('/api/sync', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mode })
+          body: JSON.stringify({ mode, method: 'ssh' })
         });
-        if (!res.ok) {
-          const data = await res.json();
-          alert(data.error || 'Failed to start sync');
+        const data = await res.json();
+        if (data.error) {
+          alert('Error: ' + data.error);
         }
       } catch (e) {
-        alert('Failed to connect: ' + e.message);
+        alert('Failed to start sync: ' + e.message);
       }
     }
-
+    
+    async function stopSync() {
+      try {
+        await fetch('/api/sync/stop', { method: 'POST' });
+      } catch (e) {
+        alert('Failed to stop: ' + e.message);
+      }
+    }
+    
+    async function loadProductCount() {
+      try {
+        const res = await fetch('/api/products/count');
+        const data = await res.json();
+        document.getElementById('productCount').textContent = 
+          data.count ? data.count.toLocaleString() : '--';
+      } catch (e) {
+        console.error('Failed to load product count:', e);
+      }
+    }
+    
     // Initialize
-    connectSSE();
+    connect();
+    loadProductCount();
+    setInterval(loadProductCount, 60000); // Refresh count every minute
   </script>
 </body>
 </html>

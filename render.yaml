@@ -2,14 +2,27 @@ services:
   - type: web
     name: tcg-sync
     runtime: node
+    plan: free
     buildCommand: npm install
-    startCommand: npm start
+    startCommand: node server.js
     envVars:
-      - key: WC_URL
+      - key: NODE_ENV
+        value: production
+      - key: SSH_HOST
         sync: false
-      - key: WC_KEY
+      - key: SSH_PORT
         sync: false
-      - key: WC_SECRET
+      - key: SSH_USER
         sync: false
+      - key: SSH_PASS
+        sync: false
+      - key: DB_NAME
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASS
+        sync: false
+      - key: DB_PREFIX
+        value: wpjx_
       - key: CATEGORY_SINGLES_ID
-        value: "49"
+        value: "199"

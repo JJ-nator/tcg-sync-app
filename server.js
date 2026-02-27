@@ -125,16 +125,21 @@ function buildDescription(row, setName) {
 // SYNC LOGIC
 // ==========================================
 
-async function runSync() {
+async function runSync(mode = 'full') {
   if (syncState.running) {
     log('⚠️ Sync already running', 'warn');
     return;
   }
 
+  const pricesOnly = mode === 'prices';
+  
   resetState();
   syncState.running = true;
+  syncState.mode = mode;
   syncState.startTime = new Date().toISOString();
   updateProgress({ phase: 'starting' });
+  
+  log(`🚀 Starting ${pricesOnly ? 'PRICE-ONLY' : 'FULL'} sync...`, 'info');
 
   try {
     // Phase 1: Download CSVs
@@ -260,15 +265,20 @@ async function runSync() {
         const existing = existingProducts.get(sku);
 
         if (existing) {
-          toUpdate.push({
-            id: existing.id,
-            name: title,
-            regular_price: String(priceCOP),
-            categories: [{ id: config.CATEGORY_SINGLES_ID }],
-            tags: [{ name: setName }],
-            status: existing.status === 'trash' ? 'publish' : undefined,
-          });
-        } else {
+          // Price-only mode: just update price
+          const updateData = pricesOnly 
+            ? { id: existing.id, regular_price: String(priceCOP) }
+            : {
+                id: existing.id,
+                name: title,
+                regular_price: String(priceCOP),
+                categories: [{ id: config.CATEGORY_SINGLES_ID }],
+                tags: [{ name: setName }],
+                status: existing.status === 'trash' ? 'publish' : undefined,
+              };
+          toUpdate.push(updateData);
+        } else if (!pricesOnly) {
+          // Full mode only: create new products
           toCreate.push({
             name: title,
             type: 'simple',
@@ -281,21 +291,26 @@ async function runSync() {
             tags: [{ name: setName }],
             images: row.imageUrl ? [{ src: row.imageUrl.replace('_200w', '_400w') }] : [],
           });
+        } else {
+          // Price-only mode: skip new products
+          syncState.skipped++;
         }
       }
 
-      // Execute batch creates
-      for (let j = 0; j < toCreate.length; j += config.BATCH_SIZE) {
-        const batch = toCreate.slice(j, j + config.BATCH_SIZE);
-        try {
-          await wcApi.post('products/batch', { create: batch });
-          syncState.created += batch.length;
-          batch.forEach(p => existingProducts.set(p.sku, { id: 0, status: 'publish' }));
-          updateProgress({ created: syncState.created });
-        } catch (e) {
-          log(`⚠️ Batch create error: ${e.message}`, 'warn');
+      // Execute batch creates (only in full mode)
+      if (!pricesOnly) {
+        for (let j = 0; j < toCreate.length; j += config.BATCH_SIZE) {
+          const batch = toCreate.slice(j, j + config.BATCH_SIZE);
+          try {
+            await wcApi.post('products/batch', { create: batch });
+            syncState.created += batch.length;
+            batch.forEach(p => existingProducts.set(p.sku, { id: 0, status: 'publish' }));
+            updateProgress({ created: syncState.created });
+          } catch (e) {
+            log(`⚠️ Batch create error: ${e.message}`, 'warn');
+          }
+          await sleep(config.RATE_LIMIT_MS);
         }
-        await sleep(config.RATE_LIMIT_MS);
       }
 
       // Execute batch updates
@@ -319,7 +334,10 @@ async function runSync() {
     // Done!
     syncState.endTime = new Date().toISOString();
     updateProgress({ phase: 'complete', running: false });
-    log(`🎉 Sync complete! Created: ${syncState.created}, Updated: ${syncState.updated}`, 'success');
+    const summary = pricesOnly 
+      ? `🎉 Price sync complete! Updated: ${syncState.updated}, Skipped (new): ${syncState.skipped}`
+      : `🎉 Full sync complete! Created: ${syncState.created}, Updated: ${syncState.updated}`;
+    log(summary, 'success');
 
   } catch (e) {
     log(`❌ Sync failed: ${e.message}`, 'error');
@@ -356,13 +374,15 @@ app.post('/api/sync', (req, res) => {
     return res.status(400).json({ error: 'Sync already running' });
   }
   
+  const mode = req.body.mode || 'full'; // 'full' or 'prices'
+  
   // Start sync in background
-  runSync().catch(e => {
+  runSync(mode).catch(e => {
     log(`❌ Sync error: ${e.message}`, 'error');
     updateProgress({ phase: 'error', running: false });
   });
   
-  res.json({ status: 'started' });
+  res.json({ status: 'started', mode });
 });
 
 // Health check

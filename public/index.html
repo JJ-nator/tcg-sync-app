@@ -46,28 +46,63 @@
       border: 1px solid rgba(255,255,255,0.1);
     }
     
+    .sync-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    
     .sync-btn {
       width: 100%;
-      padding: 20px 40px;
-      font-size: 1.3rem;
+      padding: 20px 24px;
+      font-size: 1.1rem;
       font-weight: 600;
       border: none;
       border-radius: 12px;
       cursor: pointer;
       transition: all 0.3s ease;
+    }
+    
+    .sync-btn.full {
       background: linear-gradient(90deg, #ffd700, #ff9500);
+      color: #1a1a2e;
+    }
+    
+    .sync-btn.prices {
+      background: linear-gradient(90deg, #64ffda, #4ecdc4);
       color: #1a1a2e;
     }
     
     .sync-btn:hover:not(:disabled) {
       transform: translateY(-2px);
+    }
+    
+    .sync-btn.full:hover:not(:disabled) {
       box-shadow: 0 10px 30px rgba(255,215,0,0.3);
     }
     
+    .sync-btn.prices:hover:not(:disabled) {
+      box-shadow: 0 10px 30px rgba(100,255,218,0.3);
+    }
+    
     .sync-btn:disabled {
-      background: #4a4a6a;
+      background: #4a4a6a !important;
       color: #8892b0;
       cursor: not-allowed;
+    }
+    
+    .sync-btn small {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 400;
+      margin-top: 4px;
+      opacity: 0.8;
+    }
+    
+    @media (max-width: 500px) {
+      .sync-buttons {
+        grid-template-columns: 1fr;
+      }
     }
     
     .stats {
@@ -208,9 +243,16 @@
     </header>
 
     <div class="card">
-      <button id="syncBtn" class="sync-btn" onclick="startSync()">
-        ⚡ Start Sync
-      </button>
+      <div class="sync-buttons">
+        <button id="priceBtn" class="sync-btn prices" onclick="startSync('prices')">
+          💰 Price Sync
+          <small>Update prices only (faster)</small>
+        </button>
+        <button id="fullBtn" class="sync-btn full" onclick="startSync('full')">
+          ⚡ Full Sync
+          <small>Create new + update prices</small>
+        </button>
+      </div>
     </div>
 
     <div class="card">
@@ -298,10 +340,25 @@
         ? `📦 ${state.currentSet}` 
         : '';
       
-      // Update button
-      const btn = document.getElementById('syncBtn');
-      btn.disabled = state.running;
-      btn.textContent = state.running ? '⏳ Syncing...' : '⚡ Start Sync';
+      // Update buttons
+      const priceBtn = document.getElementById('priceBtn');
+      const fullBtn = document.getElementById('fullBtn');
+      priceBtn.disabled = state.running;
+      fullBtn.disabled = state.running;
+      
+      if (state.running) {
+        const mode = state.mode || 'full';
+        if (mode === 'prices') {
+          priceBtn.innerHTML = '⏳ Syncing...<small>Updating prices</small>';
+          fullBtn.innerHTML = '⚡ Full Sync<small>Create new + update prices</small>';
+        } else {
+          priceBtn.innerHTML = '💰 Price Sync<small>Update prices only (faster)</small>';
+          fullBtn.innerHTML = '⏳ Syncing...<small>Creating + updating</small>';
+        }
+      } else {
+        priceBtn.innerHTML = '💰 Price Sync<small>Update prices only (faster)</small>';
+        fullBtn.innerHTML = '⚡ Full Sync<small>Create new + update prices</small>';
+      }
       
       // Update status badge
       const badge = document.getElementById('statusBadge');
@@ -348,9 +405,13 @@
       logs.scrollTop = logs.scrollHeight;
     }
 
-    async function startSync() {
+    async function startSync(mode = 'full') {
       try {
-        const res = await fetch('/api/sync', { method: 'POST' });
+        const res = await fetch('/api/sync', { 
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mode })
+        });
         if (!res.ok) {
           const data = await res.json();
           alert(data.error || 'Failed to start sync');
